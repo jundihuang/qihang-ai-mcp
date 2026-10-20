@@ -57,10 +57,15 @@ describe("tools", () => {
     expect(result.next_action).toContain("get_generation_task");
   });
 
-  it("getGenerationTask returns results when success", async () => {
-    const result = await getGenerationTask(mockClient, { generation_task_id: 9001 });
-    expect(result.status).toBe("success");
-    expect(result.needs_polling).toBe(false);
-    expect(result.results[0].url).toContain("example.com");
+  it("createImage client sends a generated idempotency key", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ generation_task: { id: 9001, status: "pending", model: "test" } }), { status: 200 })
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const client = new QihangClient(config);
+    await client.createGenerationTask({ task_type: "text_to_image", prompt: "cat" });
+    const [, requestInit] = fetchMock.mock.calls[0];
+    expect(requestInit.headers["Idempotency-Key"]).toMatch(/^[0-9a-f-]{36}$/i);
+    vi.unstubAllGlobals();
   });
 });

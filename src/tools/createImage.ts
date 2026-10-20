@@ -16,7 +16,9 @@ export async function createImage(client: QihangClient, input: CreateImageInput)
   if (input.size) body.size = input.size;
   if (input.resolution) body.resolution = input.resolution;
 
-  const result = await client.createGenerationTask(body);
+  const result = await client.createGenerationTask<{
+    generation_task: { id: number; status: string; model: string };
+  }>(body);
 
   return {
     generation_task_id: result.generation_task.id,

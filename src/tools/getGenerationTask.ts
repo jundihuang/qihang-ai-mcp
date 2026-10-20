@@ -2,7 +2,15 @@ import type { QihangClient } from "../client.js";
 import type { GetGenerationTaskInput } from "../schemas/tools.js";
 
 export async function getGenerationTask(client: QihangClient, input: GetGenerationTaskInput) {
-  const result = await client.getGenerationTask(input.generation_task_id);
+  type GenerationTaskResponse = {
+    generation_task: {
+      id: number;
+      status: string;
+      results?: Array<{ id: number; position: number; status: string; url: string | null }>;
+      error_message?: string | null;
+    };
+  };
+  const result = await client.getGenerationTask<GenerationTaskResponse>(input.generation_task_id);
   const task = result.generation_task;
 
   const needsPolling = ["pending", "processing"].includes(task.status);

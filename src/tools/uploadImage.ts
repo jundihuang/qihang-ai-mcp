@@ -2,7 +2,13 @@ import type { QihangClient } from "../client.js";
 import type { UploadImageInput } from "../schemas/tools.js";
 
 export async function uploadImage(client: QihangClient, input: UploadImageInput) {
-  const result = await client.uploadImage({
+  const result = await client.uploadImage<{
+    reference_id: number;
+    reference_type: string;
+    filename: string;
+    content_type: string;
+    byte_size: number;
+  }>({
     filename: input.filename,
     content_type: input.mime_type,
     data_base64: input.data_base64,
