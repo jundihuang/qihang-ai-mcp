@@ -8,6 +8,7 @@ export async function uploadImage(client: QihangClient, input: UploadImageInput)
     filename: string;
     content_type: string;
     byte_size: number;
+    preview_url?: string;
   }>({
     filename: input.filename,
     content_type: input.mime_type,
@@ -20,6 +21,7 @@ export async function uploadImage(client: QihangClient, input: UploadImageInput)
     filename: result.filename,
     content_type: result.content_type,
     byte_size: result.byte_size,
+    ...(result.preview_url ? { preview_url: result.preview_url } : {}),
     next_action: "Pass reference_id into create_image with task_type=image_to_image",
   };
 }

@@ -13,7 +13,7 @@ export async function getGenerationTask(client: QihangClient, input: GetGenerati
   const result = await client.getGenerationTask<GenerationTaskResponse>(input.generation_task_id);
   const task = result.generation_task;
 
-  const needsPolling = ["pending", "processing"].includes(task.status);
+  const needsPolling = ["pending", "submitted", "waiting", "generating", "processing"].includes(task.status);
 
   return {
     generation_task_id: task.id,
