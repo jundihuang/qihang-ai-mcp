@@ -598,7 +598,7 @@ description: Generate or edit product images through Qihang AI image generation 
 - [x] 401 / 403 / 422 / 429 / 5xx 错误转换测试。
 - [x] MCP Inspector 手工验证。
 - [ ] Codex 接入验证。
-- [ ] Claude Code / Claude Desktop 至少一个客户端验证。
+- [x] Claude Code / Claude Desktop 至少一个客户端验证。
 
 ### E2E 场景
 
@@ -739,7 +739,8 @@ https://mcp.qsmile.ai/mcp
 - 前端构建通过。
 - MCP Server：11 tests / lint / build 通过。
 - MCP SDK E2E 已跑通上传、模型查询、创建图生图任务、轮询到 success。
-- 待完成：真实 Codex / Claude 客户端冒烟验证；MCP Inspector CLI 已验证 tools/list 和 list_generation_models。
+- Claude Code 实测已通过 MCP 调用 list_generation_models，返回 11 个图生图模型。
+- 待完成：Codex 接入验证；Claude 冒烟验证已通过。
 
 ## 验收标准
 
