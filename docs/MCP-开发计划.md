@@ -278,40 +278,40 @@ Idempotency-Key: <uuid>
 
 ### Phase 1：API Secret 基础能力
 
-- [ ] 创建 `user_api_secrets` migration。
-- [ ] 新增 `UserApiSecret` model。
-- [ ] 新增 `ApiSecrets::Issuer`。
+- [x] 创建 `user_api_secrets` migration。
+- [x] 新增 `UserAPISecret` model。
+- [x] 新增 `ApiSecrets::Issuer`。
   - 生成 public_id 和 secret。
   - 保存 hash。
   - 返回完整 token。
-- [ ] 新增 `ApiSecrets::Authenticator`。
+- [x] 新增 `ApiSecrets::Authenticator`。
   - 解析 Bearer token。
   - 校验 prefix、public_id、hash、scope、过期、撤销状态。
   - 加载 user 和 application。
-- [ ] 新增 `McpAPI::V1` Grape namespace。
-- [ ] 新增 API Secret 管理接口：
+- [x] 新增 `McpAPI::V1` Grape namespace。
+- [x] 新增 API Secret 管理接口：
   - `GET /app_api/v1/api_secrets`
   - `POST /app_api/v1/api_secrets`
   - `DELETE /app_api/v1/api_secrets/:id`
-- [ ] Secret 管理接口继续使用现有 JWT 登录。
-- [ ] 添加 request specs。
-- [ ] Rubocop / RSpec 通过。
+- [x] Secret 管理接口继续使用现有 JWT 登录。
+- [x] 添加 request specs。
+- [x] Rubocop / RSpec 通过。
 
 ### Phase 2：MCP Backend API
 
-- [ ] `GET /mcp_api/v1/me`。
-- [ ] `GET /mcp_api/v1/generation_models`。
-- [ ] `POST /mcp_api/v1/generation_tasks`。
-- [ ] `GET /mcp_api/v1/generation_tasks/:id`。
-- [ ] 新增 `Mcp::ImageTaskCreator`。
+- [x] `GET /mcp_api/v1/me`。
+- [x] `GET /mcp_api/v1/generation_models`。
+- [x] `POST /mcp_api/v1/generation_tasks`。
+- [x] `GET /mcp_api/v1/generation_tasks/:id`。
+- [x] 新增 `Mcp::ImageTaskCreator`。
   - 参数规范化。
   - reference 归属校验。
   - 模型与参数校验。
   - 调用 `GenerationTasks::Creator`。
-- [ ] 新增 `Mcp::ReferenceResolver`。
+- [x] 新增 `Mcp::ReferenceResolver`。
   - 支持 Blob、GenerationAsset、GenerationResult。
   - 统一转成 `GenerationTasks::Creator` 需要的 assets。
-- [ ] 增加 audit log，至少记录：
+- [x] 增加 audit log，至少记录：
   - api_secret_id
   - user_id
   - application_id
@@ -319,11 +319,11 @@ Idempotency-Key: <uuid>
   - status
   - request_id
   - duration
-- [ ] 对创建任务和上传接口做频率限制。
-- [ ] 新增幂等 key 存储或等价 DB 约束，保存 `api_secret_id + idempotency_key -> generation_task_id`。
-- [ ] 同一 key 重复请求时命中返回原任务；不同请求体使用相同 key 时返回 409 / 422。
-- [ ] 确保日志过滤完整 token。
-- [ ] request specs 覆盖成功、401、403、422、429、重复幂等请求。
+- [x] 对创建任务和上传接口做频率限制。
+- [x] 新增幂等 key 存储或等价 DB 约束，保存 `api_secret_id + idempotency_key -> generation_task_id`。
+- [x] 同一 key 重复请求时命中返回原任务；不同请求体使用相同 key 时返回 409 / 422。
+- [x] 确保日志过滤完整 token。
+- [x] request specs 覆盖成功、401、403、422、429、重复幂等请求。
 
 ### Phase 3：上传能力
 
@@ -382,24 +382,24 @@ MCP tool 输入：
 
 ### API Secret 管理页
 
-- [ ] 新增「API 密钥 / MCP 接入」页面。
-- [ ] 列表字段：
+- [x] 新增「API 密钥 / MCP 接入」页面。
+- [x] 列表字段：
   - 名称
   - Prefix
   - 创建时间
   - 最近使用
   - 状态
   - 操作：撤销
-- [ ] 新建表单：
+- [x] 新建表单：
   - 名称
   - 过期时间，可选
   - scope，默认只读 generation 权限
-- [ ] 创建成功弹窗展示完整 token。
-- [ ] 明确提示完整 token 只显示一次。
-- [ ] 复制按钮。
-- [ ] 撤销前二次确认。
-- [ ] 展示 MCP 配置示例。
-- [ ] 使用 app 弹窗组件，不使用浏览器原生 confirm。
+- [x] 创建成功弹窗展示完整 token。
+- [x] 明确提示完整 token 只显示一次。
+- [x] 复制按钮。
+- [x] 撤销前二次确认。
+- [x] 展示 MCP 配置示例。
+- [x] 使用 app 弹窗组件，不使用浏览器原生 confirm。
 
 ### 配置示例
 
@@ -571,17 +571,17 @@ description: Generate or edit product images through Qihang AI image generation 
 
 ### Backend
 
-- [ ] JWT API Secret 管理接口测试。
-- [ ] API Secret 正常认证测试。
-- [ ] 错误 token、撤销 token、过期 token、错误 scope 测试。
-- [ ] `list_generation_models` 数据结构测试。
-- [ ] 文生图创建测试。
-- [ ] 图生图创建测试。
-- [ ] reference 不属于当前用户时 403 / 422。
-- [ ] Token 冻结、失败释放逻辑回归。
-- [ ] task detail 只返回当前用户任务。
-- [ ] Rubocop 通过。
-- [ ] RSpec 通过。
+- [x] JWT API Secret 管理接口测试。
+- [x] API Secret 正常认证测试。
+- [x] 错误 token、撤销 token、过期 token、错误 scope 测试。
+- [x] `list_generation_models` 数据结构测试。
+- [x] 文生图创建测试。
+- [x] 图生图创建测试。
+- [x] reference 不属于当前用户时 403 / 422。
+- [x] Token 冻结、失败释放逻辑回归。
+- [x] task detail 只返回当前用户任务。
+- [x] Rubocop 通过。
+- [x] RSpec 通过。
 
 ### Frontend
 
@@ -589,13 +589,13 @@ description: Generate or edit product images through Qihang AI image generation 
 - [ ] Secret 只显示一次。
 - [ ] 撤销流程。
 - [ ] 无权限接口错误处理。
-- [ ] 页面构建通过。
+- [x] 页面构建通过。
 
 ### MCP Server
 
-- [ ] 四个 tools schema 测试。
-- [ ] Backend mock 测试。
-- [ ] 401 / 403 / 422 / 429 / 5xx 错误转换测试。
+- [x] 四个 tools schema 测试。
+- [x] Backend mock 测试。
+- [x] 401 / 403 / 422 / 429 / 5xx 错误转换测试。
 - [ ] MCP Inspector 手工验证。
 - [ ] Codex 接入验证。
 - [ ] Claude Code / Claude Desktop 至少一个客户端验证。
@@ -731,6 +731,15 @@ https://mcp.qsmile.ai/mcp
 3. 取消 / 重试 / 局部编辑：补齐执行能力。
 4. MCP Remote HTTP：降低接入门槛，需要先验证用户规模。
 5. 密钥运营能力：等 MCP 使用量起来后再做。
+
+## 当前执行状态（2026-10-20）
+
+- 后端、前端、MCP Server 第一版功能已实现。
+- 后端全量 RSpec：433 examples，0 failures；Rubocop 通过。
+- 前端构建通过。
+- MCP Server：11 tests / lint / build 通过。
+- MCP SDK E2E 已跑通上传、模型查询、创建图生图任务、轮询到 success。
+- 待完成：MCP Inspector 与真实 Codex / Claude 客户端冒烟验证。
 
 ## 验收标准
 
