@@ -4,12 +4,15 @@
   "description": "MCP server for Qihang AI image generation",
   "type": "module",
   "main": "dist/index.js",
-  "bin": { "qihang-ai-mcp": "dist/index.js" },
+  "bin": {
+    "qihang-ai-mcp": "dist/index.js"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "dev": "tsx src/index.ts",
     "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -22,5 +25,12 @@
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md"
+  ]
 }
