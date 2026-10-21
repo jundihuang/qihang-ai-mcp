@@ -24,12 +24,19 @@ MCP server that exposes Qihang AI image generation capabilities to external AI c
 
 ## Tools
 
+Cancel/retry require the `generation:create` scope; memory tools require `memories:read` / `memories:write` scopes on the API Secret.
+
 | Tool | Description |
 |---|---|
 | `upload_image` | Upload a reference image, returns a `reference_id` |
 | `list_generation_models` | Query available models and their parameters |
 | `create_image` | Create a generation task (async, returns task ID) |
 | `get_generation_task` | Poll task status and get results |
+| `cancel_generation_task` | Cancel a running generation task (frozen tokens are released) |
+| `retry_generation_task` | Retry a failed task / specific result / only failed parts (creates a new task) |
+| `list_memories` | List saved user preferences (style, negative rules, defaults) |
+| `save_memory` | Save a durable user preference for future generations |
+
 
 ## Development
 

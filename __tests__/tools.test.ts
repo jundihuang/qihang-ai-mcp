@@ -5,6 +5,10 @@ import { createImage } from "../src/tools/createImage.js";
 import { getGenerationTask } from "../src/tools/getGenerationTask.js";
 import { uploadImage } from "../src/tools/uploadImage.js";
 import { listGenerationModels } from "../src/tools/listGenerationModels.js";
+import { cancelGenerationTask } from "../src/tools/cancelGenerationTask.js";
+import { retryGenerationTask } from "../src/tools/retryGenerationTask.js";
+import { listMemories } from "../src/tools/listMemories.js";
+import { saveMemory } from "../src/tools/saveMemory.js";
 import type { Config } from "../src/config.js";
 
 const config: Config = { baseUrl: "https://test.example", apiSecret: "qh_live_test", timeoutMs: 5000 };
@@ -102,5 +106,61 @@ describe("tools", () => {
     const [, requestInit] = fetchMock.mock.calls[0];
     expect(requestInit.headers["Idempotency-Key"]).toMatch(/^[0-9a-f-]{36}$/i);
     vi.unstubAllGlobals();
+  });
+
+  it("createImage passes through estimated_tokens", async () => {
+    const client = {
+      createGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 42, status: "pending", model: "m", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await createImage(client, { prompt: "cat", task_type: "text_to_image", reference_ids: [], count: 1, output_format: "png" });
+    expect(result.estimated_tokens).toBe(5);
+  });
+
+  it("cancelGenerationTask returns canceled status and note", async () => {
+    const client = {
+      cancelGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 7, status: "canceled", error_message: null },
+      }),
+    } as unknown as QihangClient;
+    const result = await cancelGenerationTask(client, { generation_task_id: 7 });
+    expect(result.status).toBe("canceled");
+    expect(result.next_action).toContain("No further polling");
+  });
+
+  it("retryGenerationTask returns the new task id", async () => {
+    const client = {
+      retryGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 99, status: "pending", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await retryGenerationTask(client, { generation_task_id: 7, failed_only: false });
+    expect(result.generation_task_id).toBe(99);
+    expect(result.source_generation_task_id).toBe(7);
+    expect(result.next_action).toContain("get_generation_task");
+  });
+
+  it("listMemories maps backend memories and adds usage hint", async () => {
+    const client = {
+      listMemories: vi.fn().mockResolvedValue({
+        memories: [
+          { id: 1, scope: "task_type", scope_value: "text_to_image", kind: "style", title: "品牌风格", content: "明亮干净", tags: ["style"], status: "active", confidence: 100 },
+        ],
+      }),
+    } as unknown as QihangClient;
+    const result = await listMemories(client, {});
+    expect(result.count).toBe(1);
+    expect(result.memories[0].scope).toBe("task_type(text_to_image)");
+    expect(result.usage).toContain("create_image");
+  });
+
+  it("saveMemory sends fields and returns memory_id", async () => {
+    const client = {
+      saveMemory: vi.fn().mockResolvedValue({ id: 3, title: "默认画幅", kind: "output_preference", scope: "global", status: "active" }),
+    } as unknown as QihangClient;
+    const result = await saveMemory(client, { title: "默认画幅", content: "默认 1:1", kind: "output_preference", scope: "global", tags: [] });
+    expect(client.saveMemory).toHaveBeenCalledWith(expect.objectContaining({ scope: "global", kind: "output_preference" }));
+    expect(result.memory_id).toBe(3);
   });
 });

@@ -21,9 +21,20 @@ description: Generate or edit product images through Qihang AI image generation 
 
 1. If unsure about models or parameters, call `list_generation_models` first.
 2. If the user provides a local image, call `upload_image` to get a `reference_id`.
-3. Call `create_image` — it returns immediately with a `generation_task_id` (async).
+3. Call `create_image` — it returns immediately with a `generation_task_id` (async) and an `estimated_tokens` cost estimate.
 4. Poll `get_generation_task` until `status` is `success` or `failed`.
 5. On `success`, return the `url` values from `results` to the user.
+
+## Cancel and retry
+
+- The user wants to stop a running task → `cancel_generation_task` (works while status is pending/submitted/waiting/generating; frozen tokens are released automatically).
+- A task `failed`, or only some images in a batch failed → `retry_generation_task` on the source task. Use `failed_only: true` to re-run only the failed images of a partially successful task, or `result_id` to redo one specific image.
+- Retry creates a NEW task and consumes tokens again — confirm with the user before retrying.
+
+## User preferences (memories)
+
+- Before generating for a user, call `list_memories` once per session and apply their saved preferences (brand style, default aspect ratio, negative rules) unless the user explicitly overrides them.
+- When the user states a durable preference ("以后都用 3:4" / "品牌风格要明亮"), save it with `save_memory`. Do not save one-off requests or sensitive personal data.
 
 ## Error handling
 
