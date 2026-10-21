@@ -41,6 +41,14 @@ describe("formatApiError", () => {
     expect(formatApiError(err)).toContain("频率受限");
   });
 
+  it("formats 404 as not found instead of service unavailable", () => {
+    const err = new ApiError(404, 40400, "task not found");
+    const msg = formatApiError(err);
+    expect(msg).toContain("资源不存在");
+    expect(msg).not.toContain("服务暂时不可用");
+    expect(msg).not.toContain("盲目重试");
+  });
+
   it("warns against blind retries for 5xx", () => {
     const err = new ApiError(502, "50000", "bad gateway");
     expect(formatApiError(err)).toContain("勿盲目重试");
