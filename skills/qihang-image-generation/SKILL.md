@@ -60,3 +60,47 @@ description: Generate or edit product images through Qihang AI image generation 
 - Default model: let the backend choose if not specified.
 - For product images, preserve product fidelity in prompts.
 - Use `negative_prompt` for elements to avoid (e.g. "blurry, watermark, text errors").
+
+## Tool parameter reference
+
+### create_image
+
+| Param | Required | Values / notes |
+|---|---|---|
+| `task_type` | yes | `text_to_image` \| `image_to_image` \| `gift_bundle` |
+| `prompt` | yes | Scene description. For edits say explicitly what must stay unchanged (e.g. "保持产品/模特不变"), and where items go (e.g. "右手拎着包" not "包放旁边" — placement is prompt-driven). |
+| `negative_prompt` | no | Elements to avoid, e.g. "主体变形，文字错误" |
+| `model` | no | Model key from `list_generation_models`. Omit to let the backend choose. image_to_image / gift_bundle require an image-to-image capable model (task_types includes them). |
+| `size` | no | Aspect ratio, default `1:1`. Common: `1:1 3:4 4:3 16:9 9:16 3:2 2:3 auto`; per-model enum in `list_generation_models.params.aspect_ratio`. |
+| `count` | no | 1–10 images per task, default 1. |
+| `output_format` | no | `png` \| `jpeg`, default `png`. |
+| `resolution` | no | `1K` \| `2K` \| `4K` — only for models that expose it. |
+| `reference_ids` | cond. | For image_to_image: at least one upload/asset/result ID; all treated as reference images. Empty for text_to_image. |
+| `references` | cond. | `[{reference_id, role}]` with role `main_product` \| `gift_product` \| `accessory` \| `reference_image`. Required for gift_bundle (≥1 main_product and ≥1 gift_product or accessory). Mutually exclusive with `reference_ids`. |
+| `bundle` | no | gift_bundle styling: `layout` (`main_left_gift_right` \| `main_center_gift_front` \| `gift_around_main` \| `package_set`), `background`, `lighting`, `angle`, `notes` — free-text descriptions. |
+
+Returns `generation_task_id`, `status`, `estimated_tokens`. Creation is idempotent per `Idempotency-Key` (handled automatically).
+
+### upload_image
+
+`filename`, `mime_type` (`image/png` | `image/jpeg` | `image/webp`), `data_base64` (≤30MB; bytes go straight to object storage), `purpose` (`reference`). Returns `reference_id`.
+
+### get_generation_task
+
+`generation_task_id`. Returns `status` (`pending`/`submitted`/`waiting`/`generating` → `success`/`failed`/`timeout`/`canceled`), `results[].url`, `error_message`, `needs_polling`, `next_action`.
+
+### cancel_generation_task
+
+`generation_task_id`. Only cancelable while pending/submitted/waiting/generating; frozen tokens are released.
+
+### retry_generation_task
+
+`generation_task_id` (source task), optional `result_id` (redo one image), optional `failed_only` (redo only failed images of a partial success). Works on failed AND completed tasks (= re-generate). Creates a new task and charges again — confirm with the user first.
+
+### list_generation_models
+
+Optional `task_type` filter. Returns each model's `key`, `task_types`, `prompt_max_length`, and `params` (per-model `aspect_ratio` / `resolution` / `output_format` enums with defaults). Never guess model keys or enums — read them here.
+
+### list_memories / save_memory
+
+`list_memories`: optional `kind` / `scope` filters. `save_memory`: `title` (≤120), `content` (≤2000, no sensitive data), `kind` (`style` `subject` `background` `composition` `negative_rule` `model_preference` `output_preference`), `scope` (`global` `application` `task_type`, last needs `scope_value`), optional `tags`. Requires memories scopes on the API secret.
