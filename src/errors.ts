@@ -11,6 +11,8 @@ export function formatApiError(error: unknown): string {
         return `参数错误：${error.message}`;
       case 429:
         return `请求频率受限，请稍后重试。`;
+      case 404:
+        return `资源不存在（HTTP 404）：${error.message}。请确认 ID 是否正确、资源是否属于当前 API Secret。`;
       default:
         return `Qihang AI 服务暂时不可用（HTTP ${error.status}）。如果是创建任务，请勿盲目重试以避免重复扣费。`;
     }

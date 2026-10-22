@@ -69,6 +69,10 @@ export class QihangClient {
     return this.request("POST", "/uploads", input);
   }
 
+  presignUpload<T = unknown>(input: { filename: string; content_type: string; byte_size: number; base64_digest: string }): Promise<T> {
+    return this.request("POST", "/direct_uploads", input);
+  }
+
   createGenerationTask<T = unknown>(input: Record<string, unknown>): Promise<T> {
     return this.request("POST", "/generation_tasks", input, {
       "Idempotency-Key": randomUUID(),
@@ -77,5 +81,25 @@ export class QihangClient {
 
   getGenerationTask<T = unknown>(id: number): Promise<T> {
     return this.request("GET", `/generation_tasks/${id}`);
+  }
+
+  cancelGenerationTask<T = unknown>(id: number): Promise<T> {
+    return this.request("POST", `/generation_tasks/${id}/cancel`);
+  }
+
+  retryGenerationTask<T = unknown>(id: number, input: { result_id?: number; failed_only?: boolean } = {}): Promise<T> {
+    return this.request("POST", `/generation_tasks/${id}/retry`, input);
+  }
+
+  listMemories<T = unknown>(query?: { kind?: string; scope?: string }): Promise<T> {
+    const params = new URLSearchParams();
+    if (query?.kind) params.set("kind", query.kind);
+    if (query?.scope) params.set("scope", query.scope);
+    const qs = params.toString();
+    return this.request("GET", `/memories${qs ? `?${qs}` : ""}`);
+  }
+
+  saveMemory<T = unknown>(input: Record<string, unknown>): Promise<T> {
+    return this.request("POST", "/memories", input);
   }
 }

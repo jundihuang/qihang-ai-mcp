@@ -5,6 +5,10 @@ import { createImage } from "../src/tools/createImage.js";
 import { getGenerationTask } from "../src/tools/getGenerationTask.js";
 import { uploadImage } from "../src/tools/uploadImage.js";
 import { listGenerationModels } from "../src/tools/listGenerationModels.js";
+import { cancelGenerationTask } from "../src/tools/cancelGenerationTask.js";
+import { retryGenerationTask } from "../src/tools/retryGenerationTask.js";
+import { listMemories } from "../src/tools/listMemories.js";
+import { saveMemory } from "../src/tools/saveMemory.js";
 import type { Config } from "../src/config.js";
 
 const config: Config = { baseUrl: "https://test.example", apiSecret: "qh_live_test", timeoutMs: 5000 };
@@ -41,6 +45,14 @@ describe("formatApiError", () => {
     expect(formatApiError(err)).toContain("频率受限");
   });
 
+  it("formats 404 as not found instead of service unavailable", () => {
+    const err = new ApiError(404, 40400, "task not found");
+    const msg = formatApiError(err);
+    expect(msg).toContain("资源不存在");
+    expect(msg).not.toContain("服务暂时不可用");
+    expect(msg).not.toContain("盲目重试");
+  });
+
   it("warns against blind retries for 5xx", () => {
     const err = new ApiError(502, "50000", "bad gateway");
     expect(formatApiError(err)).toContain("勿盲目重试");
@@ -55,11 +67,46 @@ describe("tools", () => {
     getGenerationTask: vi.fn().mockResolvedValue({ generation_task: { id: 9001, status: "success", results: [{ id: 1, position: 0, status: "success", url: "https://example.com/img.png" }], error_message: null } }),
   } as unknown as QihangClient;
 
-  it("uploadImage returns reference_id and next_action", async () => {
-    const result = await uploadImage(mockClient, { filename: "test.png", mime_type: "image/png", data_base64: "abc", purpose: "reference" });
-    expect(result.reference_id).toBe(1);
-    expect(result.preview_url).toBe("https://example.com/preview");
+  it("uploadImage presigns then PUTs bytes directly and returns reference_id", async () => {
+    const presignClient = {
+      presignUpload: vi.fn().mockResolvedValue({
+        reference_id: 8,
+        reference_type: "blob",
+        filename: "test.png",
+        content_type: "image/png",
+        byte_size: 3,
+        preview_url: "https://example.com/preview",
+        direct_upload: { url: "https://oss.example.com/put", headers: { "Content-Type": "image/png" } },
+      }),
+    } as unknown as QihangClient;
+    const putMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", putMock);
+
+    const result = await uploadImage(presignClient, { filename: "test.png", mime_type: "image/png", data_base64: "YWJj", purpose: "reference" });
+
+    expect(presignClient.presignUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ filename: "test.png", content_type: "image/png", byte_size: 3, base64_digest: expect.any(String) })
+    );
+    expect(putMock).toHaveBeenCalledWith("https://oss.example.com/put",
+      expect.objectContaining({ method: "PUT", headers: { "Content-Type": "image/png" } }));
+    expect(result.reference_id).toBe(8);
     expect(result.next_action).toContain("create_image");
+    vi.unstubAllGlobals();
+  });
+
+  it("uploadImage surfaces an error when the direct PUT fails", async () => {
+    const presignClient = {
+      presignUpload: vi.fn().mockResolvedValue({
+        reference_id: 8, reference_type: "blob", filename: "t.png", content_type: "image/png", byte_size: 3,
+        direct_upload: { url: "https://oss.example.com/put", headers: {} },
+      }),
+    } as unknown as QihangClient;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("denied", { status: 403 })));
+
+    await expect(
+      uploadImage(presignClient, { filename: "t.png", mime_type: "image/png", data_base64: "YWJj", purpose: "reference" })
+    ).rejects.toThrow("直传 OSS 失败");
+    vi.unstubAllGlobals();
   });
 
   it("listGenerationModels returns models", async () => {
@@ -94,5 +141,90 @@ describe("tools", () => {
     const [, requestInit] = fetchMock.mock.calls[0];
     expect(requestInit.headers["Idempotency-Key"]).toMatch(/^[0-9a-f-]{36}$/i);
     vi.unstubAllGlobals();
+  });
+
+  it("createImage passes through estimated_tokens", async () => {
+    const client = {
+      createGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 42, status: "pending", model: "m", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await createImage(client, { prompt: "cat", task_type: "text_to_image", reference_ids: [], count: 1, output_format: "png" });
+    expect(result.estimated_tokens).toBe(5);
+  });
+
+  it("createImage forwards role references and bundle options for gift_bundle", async () => {
+    const client = {
+      createGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 43, status: "pending", model: "seedream/5-lite-image-to-image", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await createImage(client, {
+      prompt: "正品搭配赠品组合",
+      task_type: "gift_bundle",
+      reference_ids: [],
+      references: [
+        { reference_id: 11, role: "main_product" },
+        { reference_id: 12, role: "gift_product" },
+      ],
+      bundle: { layout: "main_left_gift_right" },
+      count: 1,
+      output_format: "jpeg",
+    });
+    expect(client.createGenerationTask).toHaveBeenCalledWith(expect.objectContaining({
+      task_type: "gift_bundle",
+      references: [
+        { reference_id: 11, role: "main_product" },
+        { reference_id: 12, role: "gift_product" },
+      ],
+      bundle: { layout: "main_left_gift_right" },
+    }));
+    expect(result.generation_task_id).toBe(43);
+  });
+
+  it("cancelGenerationTask returns canceled status and note", async () => {
+    const client = {
+      cancelGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 7, status: "canceled", error_message: null },
+      }),
+    } as unknown as QihangClient;
+    const result = await cancelGenerationTask(client, { generation_task_id: 7 });
+    expect(result.status).toBe("canceled");
+    expect(result.next_action).toContain("No further polling");
+  });
+
+  it("retryGenerationTask returns the new task id", async () => {
+    const client = {
+      retryGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 99, status: "pending", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await retryGenerationTask(client, { generation_task_id: 7, failed_only: false });
+    expect(result.generation_task_id).toBe(99);
+    expect(result.source_generation_task_id).toBe(7);
+    expect(result.next_action).toContain("get_generation_task");
+  });
+
+  it("listMemories maps backend memories and adds usage hint", async () => {
+    const client = {
+      listMemories: vi.fn().mockResolvedValue({
+        memories: [
+          { id: 1, scope: "task_type", scope_value: "text_to_image", kind: "style", title: "品牌风格", content: "明亮干净", tags: ["style"], status: "active", confidence: 100 },
+        ],
+      }),
+    } as unknown as QihangClient;
+    const result = await listMemories(client, {});
+    expect(result.count).toBe(1);
+    expect(result.memories[0].scope).toBe("task_type(text_to_image)");
+    expect(result.usage).toContain("create_image");
+  });
+
+  it("saveMemory sends fields and returns memory_id", async () => {
+    const client = {
+      saveMemory: vi.fn().mockResolvedValue({ id: 3, title: "默认画幅", kind: "output_preference", scope: "global", status: "active" }),
+    } as unknown as QihangClient;
+    const result = await saveMemory(client, { title: "默认画幅", content: "默认 1:1", kind: "output_preference", scope: "global", tags: [] });
+    expect(client.saveMemory).toHaveBeenCalledWith(expect.objectContaining({ scope: "global", kind: "output_preference" }));
+    expect(result.memory_id).toBe(3);
   });
 });

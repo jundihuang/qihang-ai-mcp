@@ -15,15 +15,18 @@ export async function createImage(client: QihangClient, input: CreateImageInput)
   if (input.model) body.model = input.model;
   if (input.size) body.size = input.size;
   if (input.resolution) body.resolution = input.resolution;
+  if (input.references?.length) body.references = input.references;
+  if (input.bundle) body.bundle = input.bundle;
 
   const result = await client.createGenerationTask<{
-    generation_task: { id: number; status: string; model: string };
+    generation_task: { id: number; status: string; model: string; estimated_tokens?: number };
   }>(body);
 
   return {
     generation_task_id: result.generation_task.id,
     status: result.generation_task.status,
     model: result.generation_task.model,
+    estimated_tokens: result.generation_task.estimated_tokens ?? null,
     next_action: "Use get_generation_task to poll status until success or failed",
   };
 }
