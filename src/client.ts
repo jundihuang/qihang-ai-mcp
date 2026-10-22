@@ -69,6 +69,10 @@ export class QihangClient {
     return this.request("POST", "/uploads", input);
   }
 
+  presignUpload<T = unknown>(input: { filename: string; content_type: string; byte_size: number; base64_digest: string }): Promise<T> {
+    return this.request("POST", "/direct_uploads", input);
+  }
+
   createGenerationTask<T = unknown>(input: Record<string, unknown>): Promise<T> {
     return this.request("POST", "/generation_tasks", input, {
       "Idempotency-Key": randomUUID(),

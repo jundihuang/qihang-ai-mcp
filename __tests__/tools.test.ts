@@ -67,11 +67,46 @@ describe("tools", () => {
     getGenerationTask: vi.fn().mockResolvedValue({ generation_task: { id: 9001, status: "success", results: [{ id: 1, position: 0, status: "success", url: "https://example.com/img.png" }], error_message: null } }),
   } as unknown as QihangClient;
 
-  it("uploadImage returns reference_id and next_action", async () => {
-    const result = await uploadImage(mockClient, { filename: "test.png", mime_type: "image/png", data_base64: "abc", purpose: "reference" });
-    expect(result.reference_id).toBe(1);
-    expect(result.preview_url).toBe("https://example.com/preview");
+  it("uploadImage presigns then PUTs bytes directly and returns reference_id", async () => {
+    const presignClient = {
+      presignUpload: vi.fn().mockResolvedValue({
+        reference_id: 8,
+        reference_type: "blob",
+        filename: "test.png",
+        content_type: "image/png",
+        byte_size: 3,
+        preview_url: "https://example.com/preview",
+        direct_upload: { url: "https://oss.example.com/put", headers: { "Content-Type": "image/png" } },
+      }),
+    } as unknown as QihangClient;
+    const putMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
+    vi.stubGlobal("fetch", putMock);
+
+    const result = await uploadImage(presignClient, { filename: "test.png", mime_type: "image/png", data_base64: "YWJj", purpose: "reference" });
+
+    expect(presignClient.presignUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ filename: "test.png", content_type: "image/png", byte_size: 3, base64_digest: expect.any(String) })
+    );
+    expect(putMock).toHaveBeenCalledWith("https://oss.example.com/put",
+      expect.objectContaining({ method: "PUT", headers: { "Content-Type": "image/png" } }));
+    expect(result.reference_id).toBe(8);
     expect(result.next_action).toContain("create_image");
+    vi.unstubAllGlobals();
+  });
+
+  it("uploadImage surfaces an error when the direct PUT fails", async () => {
+    const presignClient = {
+      presignUpload: vi.fn().mockResolvedValue({
+        reference_id: 8, reference_type: "blob", filename: "t.png", content_type: "image/png", byte_size: 3,
+        direct_upload: { url: "https://oss.example.com/put", headers: {} },
+      }),
+    } as unknown as QihangClient;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("denied", { status: 403 })));
+
+    await expect(
+      uploadImage(presignClient, { filename: "t.png", mime_type: "image/png", data_base64: "YWJj", purpose: "reference" })
+    ).rejects.toThrow("直传 OSS 失败");
+    vi.unstubAllGlobals();
   });
 
   it("listGenerationModels returns models", async () => {

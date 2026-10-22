@@ -3,7 +3,7 @@ import { z } from "zod";
 export const UploadImageSchema = z.object({
   filename: z.string().describe("File name including extension"),
   mime_type: z.enum(["image/png", "image/jpeg", "image/webp"]).describe("Image MIME type"),
-  data_base64: z.string().describe("Base64-encoded image data (max 10MB)"),
+  data_base64: z.string().describe("Base64-encoded image data (max 30MB, uploaded directly to object storage)"),
   purpose: z.literal("reference").default("reference"),
 });
 

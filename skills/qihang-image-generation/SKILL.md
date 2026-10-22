@@ -16,6 +16,7 @@ description: Generate or edit product images through Qihang AI image generation 
 - `reference_ids` must be integers returned by `upload_image` or existing asset/result IDs in Qihang AI.
 - Do NOT pass arbitrary URLs or file paths as `reference_ids`.
 - For `text_to_image`, always pass `reference_ids: []`.
+- `upload_image` accepts images up to 30MB; bytes are uploaded directly to object storage, never through the backend.
 
 ## Generation flow
 
