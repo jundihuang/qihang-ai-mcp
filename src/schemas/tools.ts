@@ -14,8 +14,19 @@ export const ListGenerationModelsSchema = z.object({
 export const CreateImageSchema = z.object({
   prompt: z.string().min(1).describe("Image generation prompt"),
   negative_prompt: z.string().optional().describe("Negative prompt to exclude elements"),
-  task_type: z.enum(["text_to_image", "image_to_image"]).describe("Generation type"),
-  reference_ids: z.array(z.number()).default([]).describe("Upload or asset IDs for image_to_image"),
+  task_type: z.enum(["text_to_image", "image_to_image", "gift_bundle"]).describe("Generation type; gift_bundle composites a product with gift/accessory images"),
+  reference_ids: z.array(z.number()).default([]).describe("Upload or asset IDs for image_to_image (all treated as reference images)"),
+  references: z.array(z.object({
+    reference_id: z.number().describe("ID returned by upload_image"),
+    role: z.enum(["main_product", "gift_product", "accessory", "reference_image"]).describe("Role of this image in the composition"),
+  })).optional().describe("References with explicit roles; required for gift_bundle (needs >=1 main_product and >=1 gift_product or accessory). Mutually exclusive with reference_ids"),
+  bundle: z.object({
+    layout: z.string().optional().describe("Composition layout, e.g. main_left_gift_right / main_center_gift_front / gift_around_main / package_set"),
+    background: z.string().optional().describe("Background style description"),
+    lighting: z.string().optional().describe("Lighting style description"),
+    angle: z.string().optional().describe("Camera angle description"),
+    notes: z.string().optional().describe("Extra styling notes"),
+  }).optional().describe("Optional gift_bundle styling options"),
   model: z.string().optional().describe("Model key; use list_generation_models to see available options"),
   size: z.string().optional().describe("Aspect ratio (e.g. 1:1, 4:5, 16:9)"),
   count: z.number().min(1).max(10).default(1).describe("Number of images to generate"),

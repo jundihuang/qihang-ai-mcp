@@ -153,6 +153,35 @@ describe("tools", () => {
     expect(result.estimated_tokens).toBe(5);
   });
 
+  it("createImage forwards role references and bundle options for gift_bundle", async () => {
+    const client = {
+      createGenerationTask: vi.fn().mockResolvedValue({
+        generation_task: { id: 43, status: "pending", model: "seedream/5-lite-image-to-image", estimated_tokens: 5 },
+      }),
+    } as unknown as QihangClient;
+    const result = await createImage(client, {
+      prompt: "正品搭配赠品组合",
+      task_type: "gift_bundle",
+      reference_ids: [],
+      references: [
+        { reference_id: 11, role: "main_product" },
+        { reference_id: 12, role: "gift_product" },
+      ],
+      bundle: { layout: "main_left_gift_right" },
+      count: 1,
+      output_format: "jpeg",
+    });
+    expect(client.createGenerationTask).toHaveBeenCalledWith(expect.objectContaining({
+      task_type: "gift_bundle",
+      references: [
+        { reference_id: 11, role: "main_product" },
+        { reference_id: 12, role: "gift_product" },
+      ],
+      bundle: { layout: "main_left_gift_right" },
+    }));
+    expect(result.generation_task_id).toBe(43);
+  });
+
   it("cancelGenerationTask returns canceled status and note", async () => {
     const client = {
       cancelGenerationTask: vi.fn().mockResolvedValue({

@@ -30,7 +30,7 @@ Cancel/retry require the `generation:create` scope; memory tools require `memori
 |---|---|
 | `upload_image` | Upload a reference image, returns a `reference_id` |
 | `list_generation_models` | Query available models and their parameters |
-| `create_image` | Create a generation task (async, returns task ID) |
+| `create_image` | Create a generation task (text-to-image, image-to-image, or gift bundle with role-tagged references) |
 | `get_generation_task` | Poll task status and get results |
 | `cancel_generation_task` | Cancel a running generation task (frozen tokens are released) |
 | `retry_generation_task` | Retry a failed task / specific result / only failed parts (creates a new task) |

@@ -9,7 +9,16 @@ description: Generate or edit product images through Qihang AI image generation 
 
 - User asks to create a new image from text description → `create_image` with `task_type=text_to_image`.
 - User provides a reference image and asks to edit, replace background, or modify → upload with `upload_image`, then `create_image` with `task_type=image_to_image` and the returned `reference_id`.
+- User wants a product bundled with gifts/accessories in one shot (套装/搭配/多图合成) → `task_type=gift_bundle` with role-tagged `references` (see below).
 - User asks about available models, sizes, or parameters → `list_generation_models` first.
+
+## Gift bundle (multi-image composition)
+
+- Requires `references` with explicit roles: at least one `main_product` (the hero product to preserve) AND at least one `gift_product` or `accessory`.
+- Example: `references: [{reference_id: 1, role: "main_product"}, {reference_id: 2, role: "gift_product"}]`.
+- Optional `bundle` styling: `layout` (main_left_gift_right / main_center_gift_front / gift_around_main / package_set), `background`, `lighting`, `angle`, `notes`.
+- Describe the desired scene in `prompt`; the backend automatically instructs the model not to alter the main product.
+- Use an image-to-image capable model (check `list_generation_models` for `gift_bundle` support).
 
 ## Reference IDs
 
